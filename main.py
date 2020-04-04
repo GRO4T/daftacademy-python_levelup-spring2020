@@ -6,7 +6,7 @@ from typing import Dict
 from pydantic import BaseModel
 
 app = FastAPI()
-app.counter = -1
+app.counter = 0
 
 class PatientRq(BaseModel):
 	name: str
