@@ -2,7 +2,18 @@
 
 from fastapi import FastAPI
 
+from typing import Dict
+from pydantic import BaseModel
+
 app = FastAPI()
+app.counter = -1
+
+class PatientRq(BaseModel):
+	name: str
+	surname: str
+class PatientIdResp(BaseModel):
+	id: int
+	patient: Dict
 
 @app.get("/")
 def root():
@@ -13,13 +24,20 @@ def get_method():
 	return {"method": "GET"}
 
 @app.post("/method")
-def get_method():
+def post_method():
 	return {"method": "POST"}
 
 @app.delete("/method")
-def get_method():
+def delete_method():
 	return {"method": "DELETE"}
 
 @app.put("/method")
-def get_method():
+def put_method():
 	return {"method": "PUT"}
+
+@app.post("/patient", response_model=PatientIdResp)
+def get_patient_id(rq: PatientRq):
+	app.counter+=1
+	return PatientIdResp(id=app.counter, patient=rq.dict())
+
+
