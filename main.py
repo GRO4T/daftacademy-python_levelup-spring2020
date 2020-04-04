@@ -10,7 +10,7 @@ app.counter = -1
 
 class PatientRq(BaseModel):
 	name: str
-	surname: str
+	surename: str
 class PatientIdResp(BaseModel):
 	id: int
 	patient: Dict
