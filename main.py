@@ -42,12 +42,12 @@ def put_method():
 
 @app.post("/patient", response_model=PatientIdResp)
 def get_patient_id(rq: PatientRq):
-	app.counter+=1
 	app.patient_dict[app.counter] = rq.dict()
+	app.counter+=1
 	return PatientIdResp(id=app.counter, patient=rq.dict())
 
 @app.get("/patient/{pk}", response_model=GetPatientResp)
 def get_patient(pk: int):
 	if pk not in app.patient_dict:
-		raise HTTPException(status_code=404, detail="Item not found")
+		raise HTTPException(status_code=204, detail="Item not found")
 	return GetPatientResp(name=app.patient_dict[pk]["name"], surename=app.patient_dict[pk]["surename"])
