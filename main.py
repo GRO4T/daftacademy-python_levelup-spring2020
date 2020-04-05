@@ -1,19 +1,24 @@
 # main.py
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 
 from typing import Dict
 from pydantic import BaseModel
 
 app = FastAPI()
 app.counter = 0
+app.patient_dict = {}
 
 class PatientRq(BaseModel):
 	name: str
 	surename: str
-class PatientIdResp(BaseModel):
+class PatientIdResp(BaseModel): 
 	id: int
 	patient: Dict
+
+class GetPatientResp(BaseModel):
+	name: str
+	surename: str
 
 @app.get("/")
 def root():
@@ -38,6 +43,11 @@ def put_method():
 @app.post("/patient", response_model=PatientIdResp)
 def get_patient_id(rq: PatientRq):
 	app.counter+=1
+	app.patient_dict[app.counter] = rq.dict()
 	return PatientIdResp(id=app.counter, patient=rq.dict())
 
-
+@app.get("/patient/{pk}", response_model=GetPatientResp)
+def get_patient(pk: int):
+	if pk not in app.patient_dict:
+		raise HTTPException(status_code=404, detail="Item not found")
+	return GetPatientResp(name=app.patient_dict[pk]["name"], surename=app.patient_dict[pk]["surename"])
