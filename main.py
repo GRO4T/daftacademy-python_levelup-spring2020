@@ -64,7 +64,7 @@ def logout(*, response: Response, session_toker: str = Cookie(None)):
         )
     else:
         app.sessions.remove(session_toker)
-        response.headers["Location"] = "/welcome"
+        response.headers["Location"] = "/"
         response.status_code = status.HTTP_302_FOUND
 
 @app.get("/method")
@@ -96,6 +96,11 @@ def get_patient_id(rq: PatientRq, session_toker: str = Cookie(None)):
 
 @app.get("/patient/{pk}", response_model=GetPatientResp)
 def get_patient(pk: int):
+    if session_token not in app.sessions:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Unauthorised"
+        )
     if pk not in app.patient_dict:
         raise HTTPException(status_code=204, detail="Item not found")
     return GetPatientResp(name=app.patient_dict[pk]["name"], surename=app.patient_dict[pk]["surename"])
