@@ -12,7 +12,7 @@ app.patient_dict = {}
 class PatientRq(BaseModel):
 	name: str
 	surename: str
-class PatientIdResp(BaseModel): 
+class PatientIdResp(BaseModel):
 	id: int
 	patient: Dict
 
@@ -23,6 +23,10 @@ class GetPatientResp(BaseModel):
 @app.get("/")
 def root():
 	return {"message": "Hello World during the coronavirus pandemic!"}
+
+@app.get("/welcome")
+def root():
+	return {"message": "Welcome to my page!"}
 
 @app.get("/method")
 def get_method():
