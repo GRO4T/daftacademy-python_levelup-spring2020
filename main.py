@@ -11,29 +11,31 @@ from pydantic import BaseModel
 app = FastAPI()
 app.counter = 0
 app.patient_dict = {}
+app.sessions = []
 
 security = HTTPBasic()
 
 app.secret_key = "very constatn and random secret, best 64 characters"
 
 class PatientRq(BaseModel):
-	name: str
-	surename: str
+    name: str
+    surename: str
+
 class PatientIdResp(BaseModel):
-	id: int
-	patient: Dict
+    id: int
+    patient: Dict
 
 class GetPatientResp(BaseModel):
-	name: str
-	surename: str
+    name: str
+    surename: str
 
 @app.get("/")
 def root():
-	return {"message": "Hello World during the coronavirus pandemic!"}
+    return {"message": "Hello World during the coronavirus pandemic!"}
 
 @app.get("/welcome")
 def welcome():
-	return {"message": "Welcome to my page!"}
+    return {"message": "Welcome to my page!"}
 
 @app.post("/login")
 def login(response: Response, credentials: HTTPBasicCredentials = Depends(security)):
@@ -41,6 +43,8 @@ def login(response: Response, credentials: HTTPBasicCredentials = Depends(securi
         user = credentials.username
         password = credentials.password
         session_token = sha256(bytes(f"{user}{password}{app.secret_key}", encoding="utf-8")).hexdigest()
+        if session_token not in app.sessions:
+            app.sessions.append(session_token)
         response.set_cookie(key="session_token", value=session_token)
         response.headers["Location"] = "/welcome"
         response.status_code = status.HTTP_302_FOUND
@@ -51,30 +55,47 @@ def login(response: Response, credentials: HTTPBasicCredentials = Depends(securi
             headers={"WWW-Authenticate": "Basic"},
         )
 
+@app.post("/logout")
+def logout(*, response: Response, session_toker: str = Cookie(None)):
+    if session_token not in app.sessions:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Unauthorised"
+        )
+    else:
+        app.sessions.remove(session_toker)
+        response.headers["Location"] = "/welcome"
+        response.status_code = status.HTTP_302_FOUND
+
 @app.get("/method")
 def get_method():
-	return {"method": "GET"}
+    return {"method": "GET"}
 
 @app.post("/method")
 def post_method():
-	return {"method": "POST"}
+    return {"method": "POST"}
 
 @app.delete("/method")
 def delete_method():
-	return {"method": "DELETE"}
+    return {"method": "DELETE"}
 
 @app.put("/method")
 def put_method():
-	return {"method": "PUT"}
+    return {"method": "PUT"}
 
 @app.post("/patient", response_model=PatientIdResp)
-def get_patient_id(rq: PatientRq):
-	app.patient_dict[app.counter] = rq.dict()
-	app.counter+=1
-	return PatientIdResp(id=app.counter, patient=rq.dict())
+def get_patient_id(rq: PatientRq, session_toker: str = Cookie(None)):
+    if session_token not in app.sessions:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Unauthorised"
+        )
+    app.patient_dict[app.counter] = rq.dict()
+    app.counter+=1
+    return PatientIdResp(id=app.counter, patient=rq.dict())
 
 @app.get("/patient/{pk}", response_model=GetPatientResp)
 def get_patient(pk: int):
-	if pk not in app.patient_dict:
-		raise HTTPException(status_code=204, detail="Item not found")
-	return GetPatientResp(name=app.patient_dict[pk]["name"], surename=app.patient_dict[pk]["surename"])
+    if pk not in app.patient_dict:
+        raise HTTPException(status_code=204, detail="Item not found")
+    return GetPatientResp(name=app.patient_dict[pk]["name"], surename=app.patient_dict[pk]["surename"])
