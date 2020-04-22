@@ -1,7 +1,7 @@
 # main.py
 
 from hashlib import sha256
-from fastapi import FastAPI, HTTPException, Depends, Cookie
+from fastapi import FastAPI, HTTPException, Depends, Cookie, status
 from starlette.responses import RedirectResponse, Response
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
@@ -35,28 +35,21 @@ def root():
 def welcome():
 	return {"message": "Welcome to my page!"}
 
-@app.post("/login")
+@app.get("/login")
 def login(response: Response, credentials: HTTPBasicCredentials = Depends(security)):
     if (credentials.username == "trudnY" and credentials.password == "PaC13Nt"):
         user = credentials.username
         password = credentials.password
-        #session_token = sha256(bytes(f"{user}{password}{app.secret_key}")).hexdigest()
-        #response.set_cookie(key="session_token", value=session_token)
-        return RedirectResponse(url="/welcome")
-    else:
-        raise HTTPException(status_code=403, detail="Unathorised")
-
-"""
-@app.post("/login")
-def login(login: str, pass: str, response: Response):
-    if (login == "trudnY" and pass == "PaC13Nt")
-        session_token = sha256(bytes(f"{user}{password}{app.secret_key}")).hexdigest()
+        session_token = sha256(bytes(f"{user}{password}{app.secret_key}", encoding="utf-8")).hexdigest()
         response.set_cookie(key="session_token", value=session_token)
-        return RedirectResponse(url="/welcome")
+        response.headers["Location"] = "/welcome"
+        response.status_code = status.HTTP_302_FOUND
     else:
-        response.status_code = 401
-
-        """
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Basic"},
+        )
 
 @app.get("/method")
 def get_method():
