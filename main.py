@@ -35,7 +35,7 @@ def root():
 def welcome():
 	return {"message": "Welcome to my page!"}
 
-@app.get("/login")
+@app.post("/login")
 def login(response: Response, credentials: HTTPBasicCredentials = Depends(security)):
     if (credentials.username == "trudnY" and credentials.password == "PaC13Nt"):
         user = credentials.username
