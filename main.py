@@ -1,6 +1,8 @@
 # main.py
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
+from starlette.responses import RedirectResponse, Response
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 from typing import Dict
 from pydantic import BaseModel
@@ -8,6 +10,8 @@ from pydantic import BaseModel
 app = FastAPI()
 app.counter = 0
 app.patient_dict = {}
+
+security = HTTPBasic()
 
 class PatientRq(BaseModel):
 	name: str
@@ -25,8 +29,15 @@ def root():
 	return {"message": "Hello World during the coronavirus pandemic!"}
 
 @app.get("/welcome")
-def root():
+def welcome():
 	return {"message": "Welcome to my page!"}
+
+@app.post("/login")
+def login(credentials: HTTPBasicCredentials = Depends(security)):
+    if (credentials.username == "trudnY" and credentials.password == "PaC13Nt"):
+        return RedirectResponse(url="/welcome")
+    else:
+        return Response("Wrong credentials", status_code=401)
 
 @app.get("/method")
 def get_method():
