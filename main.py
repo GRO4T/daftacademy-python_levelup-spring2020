@@ -59,16 +59,13 @@ def login(response: Response, credentials: HTTPBasicCredentials = Depends(securi
 @app.post("/logout")
 def logout(response: Response, session_token: str = Cookie(None)):
     if session_token not in app.sessions:
-        """
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Unauthorised"
         )
-        """
-    else:
-        app.sessions.remove(session_toker)
+    app.sessions.remove(session_token)
     response.headers["Location"] = "/"
-    response.status_code = status.HTTP_307_TEMPORARY_REDIRECT
+    response.status_code = status.HTTP_302_FOUND
 
 @app.get("/method")
 @app.post("/method")
@@ -77,9 +74,12 @@ def logout(response: Response, session_token: str = Cookie(None)):
 def get_method(request: Request):
     return {"method":str(request.method)}
 
+@app.post("/test")
+def test(session_token: str = Cookie(None)):
+    return {"session": session_token}
 
 @app.post("/patient", response_model=PatientIdResp)
-def get_patient_id(rq: PatientRq, session_toker: str = Cookie(None)):
+def add_patient(response: Response, rq: PatientRq, session_token: str = Cookie(None)):
     if session_token not in app.sessions:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -87,15 +87,18 @@ def get_patient_id(rq: PatientRq, session_toker: str = Cookie(None)):
         )
     app.patient_dict[app.counter] = rq.dict()
     app.counter+=1
+    response.status_code = status.HTTP_302_FOUND
     return PatientIdResp(id=app.counter, patient=rq.dict())
 
 @app.get("/patient/{pk}", response_model=GetPatientResp)
-def get_patient(pk: int):
+def get_patient(response: Response, pk: int, session_token: str = Cookie(None)):
     if session_token not in app.sessions:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Unauthorised"
         )
+
     if pk not in app.patient_dict:
         raise HTTPException(status_code=204, detail="Item not found")
+    response.status_code = status.HTTP_302_FOUND
     return GetPatientResp(name=app.patient_dict[pk]["name"], surename=app.patient_dict[pk]["surename"])
