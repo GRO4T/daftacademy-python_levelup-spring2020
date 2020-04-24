@@ -11,7 +11,7 @@ from pydantic import BaseModel
 app = FastAPI()
 app.counter = 0
 app.patient_dict = {}
-app.sessions = []
+app.sessions = {}
 
 security = HTTPBasic()
 
@@ -35,7 +35,13 @@ def root():
     return {"message": "Hello World during the coronavirus pandemic!"}
 
 @app.get("/welcome")
-def welcome():
+def welcome(session_token: str = Cookie(None)):
+    if session_token not in app.sessions:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Unauthorised"
+        )
+
     return {"message": "Welcome to my page!"}
 
 @app.post("/login")
@@ -45,7 +51,8 @@ def login(response: Response, credentials: HTTPBasicCredentials = Depends(securi
         password = credentials.password
         session_token = sha256(bytes(f"{user}{password}{app.secret_key}", encoding="utf-8")).hexdigest()
         if session_token not in app.sessions:
-            app.sessions.append(session_token)
+            app.sessions[session_token] = user
+
         response.set_cookie(key="session_token", value=session_token)
         response.headers["Location"] = "/welcome"
         response.status_code = status.HTTP_302_FOUND
@@ -63,7 +70,7 @@ def logout(response: Response, session_token: str = Cookie(None)):
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Unauthorised"
         )
-    app.sessions.remove(session_token)
+    app.sessions.pop(session_token)
     response.headers["Location"] = "/"
     response.status_code = status.HTTP_302_FOUND
 
@@ -79,7 +86,7 @@ def test(session_token: str = Cookie(None)):
     return {"session": session_token}
 
 @app.post("/patient", response_model=PatientIdResp)
-def add_patient(response: Response, rq: PatientRq, session_token: str = Cookie(None)):
+def add_patient(rq: PatientRq, session_token: str = Cookie(None)):
     if session_token not in app.sessions:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -87,11 +94,10 @@ def add_patient(response: Response, rq: PatientRq, session_token: str = Cookie(N
         )
     app.patient_dict[app.counter] = rq.dict()
     app.counter+=1
-    response.status_code = status.HTTP_302_FOUND
     return PatientIdResp(id=app.counter, patient=rq.dict())
 
 @app.get("/patient/{pk}", response_model=GetPatientResp)
-def get_patient(response: Response, pk: int, session_token: str = Cookie(None)):
+def get_patient(pk: int, session_token: str = Cookie(None)):
     if session_token not in app.sessions:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -100,5 +106,4 @@ def get_patient(response: Response, pk: int, session_token: str = Cookie(None)):
 
     if pk not in app.patient_dict:
         raise HTTPException(status_code=204, detail="Item not found")
-    response.status_code = status.HTTP_302_FOUND
     return GetPatientResp(name=app.patient_dict[pk]["name"], surename=app.patient_dict[pk]["surename"])
