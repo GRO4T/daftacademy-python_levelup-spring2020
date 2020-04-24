@@ -40,7 +40,7 @@ def root():
 def welcome(request: Request, session_token: str = Cookie(None)):
     if session_token not in app.sessions:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Unauthorised"
         )
     return templates.TemplateResponse("welcome.html", {"request": request, "user": app.sessions[session_token]})
