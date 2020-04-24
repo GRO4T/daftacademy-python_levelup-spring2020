@@ -1,7 +1,7 @@
 # main.py
 
 from hashlib import sha256
-from fastapi import FastAPI, HTTPException, Depends, Cookie, status
+from fastapi import FastAPI, HTTPException, Depends, Cookie, status, Request
 from starlette.responses import RedirectResponse, Response
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
@@ -31,6 +31,7 @@ class GetPatientResp(BaseModel):
 
 @app.get("/")
 def root():
+    print(app.sessions)
     return {"message": "Hello World during the coronavirus pandemic!"}
 
 @app.get("/welcome")
@@ -56,32 +57,23 @@ def login(response: Response, credentials: HTTPBasicCredentials = Depends(securi
         )
 
 @app.post("/logout")
-def logout(response: Response, session_toker: str = Cookie(None)):
+def logout(response: Response, session_token: str = Cookie(None)):
     if session_token not in app.sessions:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Unauthorised"
         )
-    else:
-        app.sessions.remove(session_toker)
-        response.headers["Location"] = "/"
-        response.status_code = status.HTTP_307_TEMPORARY_REDIRECT
+    app.sessions.remove(session_toker)
+    response.headers["Location"] = "/"
+    response.status_code = status.HTTP_307_TEMPORARY_REDIRECT
 
 @app.get("/method")
-def get_method():
-    return {"method": "GET"}
-
 @app.post("/method")
-def post_method():
-    return {"method": "POST"}
-
 @app.delete("/method")
-def delete_method():
-    return {"method": "DELETE"}
-
 @app.put("/method")
-def put_method():
-    return {"method": "PUT"}
+def get_method(request: Request):
+    return {"method":str(request.method)}
+
 
 @app.post("/patient", response_model=PatientIdResp)
 def get_patient_id(rq: PatientRq, session_toker: str = Cookie(None)):
