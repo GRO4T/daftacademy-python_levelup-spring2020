@@ -1,9 +1,10 @@
 # main.py
 
 from hashlib import sha256
-from fastapi import FastAPI, HTTPException, Depends, Cookie, status, Request
-from starlette.responses import RedirectResponse, Response
+
+from fastapi import FastAPI, HTTPException, Depends, Cookie, status, Request, Response
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from fastapi.templating import Jinja2Templates
 
 from typing import Dict
 from pydantic import BaseModel
@@ -12,10 +13,12 @@ app = FastAPI()
 app.counter = 0
 app.patient_dict = {}
 app.sessions = {}
+app.secret_key = "very constatn and random secret, best 64 characters"
+
+templates = Jinja2Templates(directory="templates")
 
 security = HTTPBasic()
 
-app.secret_key = "very constatn and random secret, best 64 characters"
 
 class PatientRq(BaseModel):
     name: str
@@ -31,18 +34,16 @@ class GetPatientResp(BaseModel):
 
 @app.get("/")
 def root():
-    print(app.sessions)
     return {"message": "Hello World during the coronavirus pandemic!"}
 
 @app.get("/welcome")
-def welcome(session_token: str = Cookie(None)):
+def welcome(request: Request, session_token: str = Cookie(None)):
     if session_token not in app.sessions:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Unauthorised"
         )
-
-    return {"message": "Welcome to my page!"}
+    return templates.TemplateResponse("welcome.html", {"request": request, "user": app.sessions[session_token]})
 
 @app.post("/login")
 def login(response: Response, credentials: HTTPBasicCredentials = Depends(security)):
