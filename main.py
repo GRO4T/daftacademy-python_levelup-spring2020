@@ -58,14 +58,15 @@ def login(response: Response, credentials: HTTPBasicCredentials = Depends(securi
 
 @app.post("/logout")
 def logout(response: Response, session_token: str = Cookie(None)):
-    """
     if session_token not in app.sessions:
+        """
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Unauthorised"
         )
         """
-    app.sessions.remove(session_toker)
+    else:
+        app.sessions.remove(session_toker)
     response.headers["Location"] = "/"
     response.status_code = status.HTTP_307_TEMPORARY_REDIRECT
 
