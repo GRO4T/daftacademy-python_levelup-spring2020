@@ -86,24 +86,25 @@ def test(session_token: str = Cookie(None)):
     return {"session": session_token}
 
 @app.post("/patient", response_model=PatientIdResp)
-def add_patient(rq: PatientRq, session_token: str = Cookie(None)):
+def add_patient(response: Response, rq: PatientRq, session_token: str = Cookie(None)):
     if session_token not in app.sessions:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Unauthorised"
         )
+    response.status_code = status.HTTP_302_FOUND
     app.patient_dict[app.counter] = rq.dict()
     app.counter+=1
     return PatientIdResp(id=app.counter, patient=rq.dict())
 
 @app.get("/patient/{pk}", response_model=GetPatientResp)
-def get_patient(pk: int, session_token: str = Cookie(None)):
+def get_patient(response: Response, pk: int, session_token: str = Cookie(None)):
     if session_token not in app.sessions:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Unauthorised"
         )
-
     if pk not in app.patient_dict:
         raise HTTPException(status_code=204, detail="Item not found")
+    response.status_code = status.HTTP_302_FOUND
     return GetPatientResp(name=app.patient_dict[pk]["name"], surename=app.patient_dict[pk]["surename"])
