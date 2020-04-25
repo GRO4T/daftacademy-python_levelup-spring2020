@@ -10,7 +10,7 @@ from typing import Dict
 from pydantic import BaseModel
 
 app = FastAPI()
-app.counter = 0
+app.next_patient_id = 0
 app.patient_dict = {}
 app.sessions = {}
 app.secret_key = "very constatn and random secret, best 64 characters"
@@ -20,17 +20,6 @@ templates = Jinja2Templates(directory="templates")
 security = HTTPBasic()
 
 
-class PatientRq(BaseModel):
-    name: str
-    surename: str
-
-class PatientIdResp(BaseModel):
-    id: int
-    patient: Dict
-
-class GetPatientResp(BaseModel):
-    name: str
-    surename: str
 
 @app.get("/")
 def root():
@@ -75,35 +64,64 @@ def logout(response: Response, session_token: str = Cookie(None)):
     response.headers["Location"] = "/"
     response.status_code = status.HTTP_302_FOUND
 
+"""
+@app.post("/test")
+def test(session_token: str = Cookie(None)):
+    return {"session": session_token}
+"""
+
+class PatientJSON(BaseModel):
+    name: str
+    surename: str
+
+@app.post("/patient")
+def add_patient(response: Response, rq: PatientJSON, session_token: str = Cookie(None)):
+    if session_token not in app.sessions:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Unauthorised"
+        )
+
+    app.patient_dict[app.next_patient_id] = rq.dict()
+    app.next_patient_id += 1
+    response.status_code = status.HTTP_302_FOUND
+    response.headers["Location"] = f"/patient/{str(app.next_patient_id-1)}"
+
+@app.get("/patient")
+def get_all_patients(session_token: str = Cookie(None)):
+    if session_token not in app.sessions:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Unauthorised"
+        )
+    return app.patient_dict
+
+@app.get("/patient/{pk}", response_model=PatientJSON)
+def get_patient(pk: int, session_token: str = Cookie(None)):
+    if session_token not in app.sessions:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Unauthorised"
+        )
+    if pk not in app.patient_dict:
+        raise HTTPException(status_code=204, detail="Item not found")
+    return PatientJSON(name=app.patient_dict[pk]["name"], surename=app.patient_dict[pk]["surename"])
+
+@app.delete("/patient/{pk}")
+def delete_patient(pk: int, session_token: str = Cookie(None)):
+    if session_token not in app.sessions:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Unauthorised"
+        )
+
+    if pk not in app.patient_dict:
+        raise HTTPException(status_code=404, detail="Item not found")
+    app.patient_dict.pop(pk)
+
 @app.get("/method")
 @app.post("/method")
 @app.delete("/method")
 @app.put("/method")
 def get_method(request: Request):
     return {"method":str(request.method)}
-
-@app.post("/test")
-def test(session_token: str = Cookie(None)):
-    return {"session": session_token}
-
-@app.post("/patient", response_model=PatientIdResp)
-def add_patient(rq: PatientRq, session_token: str = Cookie(None)):
-    if session_token not in app.sessions:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Unauthorised"
-        )
-    app.patient_dict[app.counter] = rq.dict()
-    app.counter+=1
-    return PatientIdResp(id=app.counter, patient=rq.dict())
-
-@app.get("/patient/{pk}", response_model=GetPatientResp)
-def get_patient(pk: int, session_token: str = Cookie(None)):
-    if session_token not in app.sessions:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Unauthorised"
-        )
-    if pk not in app.patient_dict:
-        raise HTTPException(status_code=204, detail="Item not found")
-    return GetPatientResp(name=app.patient_dict[pk]["name"], surename=app.patient_dict[pk]["surename"])
