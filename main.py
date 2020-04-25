@@ -88,16 +88,17 @@ def add_patient(response: Response, rq: PatientJSON, session_token: str = Cookie
     response.headers["Location"] = f"/patient/{str(app.next_patient_id-1)}"
 
 @app.get("/patient")
-def get_all_patients(session_token: str = Cookie(None)):
+def get_all_patients(response: Response, session_token: str = Cookie(None)):
     if session_token not in app.sessions:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Unauthorised"
         )
+    response.status_code = status.HTTP_302_FOUND
     return app.patient_dict
 
 @app.get("/patient/{pk}", response_model=PatientJSON)
-def get_patient(pk: int, session_token: str = Cookie(None)):
+def get_patient(response: Response, pk: int, session_token: str = Cookie(None)):
     if session_token not in app.sessions:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -105,10 +106,11 @@ def get_patient(pk: int, session_token: str = Cookie(None)):
         )
     if pk not in app.patient_dict:
         raise HTTPException(status_code=204, detail="Item not found")
+    response.status_code = status.HTTP_302_FOUND
     return PatientJSON(name=app.patient_dict[pk]["name"], surename=app.patient_dict[pk]["surename"])
 
 @app.delete("/patient/{pk}")
-def delete_patient(pk: int, session_token: str = Cookie(None)):
+def delete_patient(response: Response, pk: int, session_token: str = Cookie(None)):
     if session_token not in app.sessions:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -118,6 +120,7 @@ def delete_patient(pk: int, session_token: str = Cookie(None)):
     if pk not in app.patient_dict:
         raise HTTPException(status_code=404, detail="Item not found")
     app.patient_dict.pop(pk)
+    response.status_code = status.HTTP_302_FOUND
 
 @app.get("/method")
 @app.post("/method")
