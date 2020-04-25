@@ -83,9 +83,9 @@ def add_patient(response: Response, rq: PatientJSON, session_token: str = Cookie
         )
 
     app.patient_dict[app.next_patient_id] = rq.dict()
-    app.next_patient_id += 1
+    response.headers["Location"] = f"/patient/{str(app.next_patient_id)}"
     response.status_code = status.HTTP_302_FOUND
-    response.headers["Location"] = f"/patient/{str(app.next_patient_id-1)}"
+    app.next_patient_id += 1
 
 @app.get("/patient")
 def get_all_patients(response: Response, session_token: str = Cookie(None)):
@@ -94,7 +94,6 @@ def get_all_patients(response: Response, session_token: str = Cookie(None)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Unauthorised"
         )
-    response.status_code = status.HTTP_302_FOUND
     return app.patient_dict
 
 @app.get("/patient/{pk}", response_model=PatientJSON)
@@ -106,7 +105,6 @@ def get_patient(response: Response, pk: int, session_token: str = Cookie(None)):
         )
     if pk not in app.patient_dict:
         raise HTTPException(status_code=204, detail="Item not found")
-    response.status_code = status.HTTP_302_FOUND
     return PatientJSON(name=app.patient_dict[pk]["name"], surname=app.patient_dict[pk]["surname"])
 
 @app.delete("/patient/{pk}")
@@ -120,7 +118,6 @@ def delete_patient(response: Response, pk: int, session_token: str = Cookie(None
     if pk not in app.patient_dict:
         raise HTTPException(status_code=404, detail="Item not found")
     app.patient_dict.pop(pk)
-    response.status_code = status.HTTP_302_FOUND
 
 @app.get("/method")
 @app.post("/method")
