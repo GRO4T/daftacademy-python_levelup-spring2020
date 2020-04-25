@@ -118,6 +118,7 @@ def delete_patient(response: Response, pk: int, session_token: str = Cookie(None
     if pk not in app.patient_dict:
         raise HTTPException(status_code=404, detail="Item not found")
     app.patient_dict.pop(pk)
+    response.status_code = status.HTTP_204_NO_CONTENT
 
 @app.get("/method")
 @app.post("/method")
