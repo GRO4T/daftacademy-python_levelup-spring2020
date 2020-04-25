@@ -72,7 +72,7 @@ def test(session_token: str = Cookie(None)):
 
 class PatientJSON(BaseModel):
     name: str
-    surename: str
+    surname: str
 
 @app.post("/patient")
 def add_patient(response: Response, rq: PatientJSON, session_token: str = Cookie(None)):
@@ -107,7 +107,7 @@ def get_patient(response: Response, pk: int, session_token: str = Cookie(None)):
     if pk not in app.patient_dict:
         raise HTTPException(status_code=204, detail="Item not found")
     response.status_code = status.HTTP_302_FOUND
-    return PatientJSON(name=app.patient_dict[pk]["name"], surename=app.patient_dict[pk]["surename"])
+    return PatientJSON(name=app.patient_dict[pk]["name"], surname=app.patient_dict[pk]["surname"])
 
 @app.delete("/patient/{pk}")
 def delete_patient(response: Response, pk: int, session_token: str = Cookie(None)):
