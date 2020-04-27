@@ -1,5 +1,7 @@
 # main.py
 
+import sqlite3
+
 from hashlib import sha256
 
 from fastapi import FastAPI, HTTPException, Depends, Cookie, status, Request, Response
@@ -19,6 +21,20 @@ templates = Jinja2Templates(directory="templates")
 
 security = HTTPBasic()
 
+@app.on_event("startup")
+async def startup():
+    app.db_connection = sqlite3.connect("chinook.db")
+
+@app.on_event("shutdown")
+async def shutdown():
+    app.db_connection.close()
+
+def check_login(session_token: str = Cookie(None)):
+    if session_token not in app.sessions:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Unauthorised"
+        )
 
 
 @app.get("/")
@@ -26,12 +42,7 @@ def root():
     return {"message": "Hello World during the coronavirus pandemic!"}
 
 @app.get("/welcome")
-def welcome(request: Request, session_token: str = Cookie(None)):
-    if session_token not in app.sessions:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Unauthorised"
-        )
+def welcome(request: Request, session_token: str = Depends(check_login)):
     return templates.TemplateResponse("welcome.html", {"request": request, "user": app.sessions[session_token]})
 
 @app.post("/login")
@@ -54,67 +65,34 @@ def login(response: Response, credentials: HTTPBasicCredentials = Depends(securi
         )
 
 @app.post("/logout")
-def logout(response: Response, session_token: str = Cookie(None)):
-    if session_token not in app.sessions:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Unauthorised"
-        )
+def logout(response: Response, session_token: str = Depends(check_login)):
     app.sessions.pop(session_token)
     response.headers["Location"] = "/"
     response.status_code = status.HTTP_302_FOUND
 
-"""
-@app.post("/test")
-def test(session_token: str = Cookie(None)):
-    return {"session": session_token}
-"""
-
-class PatientJSON(BaseModel):
+class Patient(BaseModel):
     name: str
     surname: str
 
 @app.post("/patient")
-def add_patient(response: Response, rq: PatientJSON, session_token: str = Cookie(None)):
-    if session_token not in app.sessions:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Unauthorised"
-        )
-
+def add_patient(response: Response, rq: Patient, session_token: str = Depends(check_login)):
     app.patient_dict[app.next_patient_id] = rq.dict()
     response.headers["Location"] = f"/patient/{str(app.next_patient_id)}"
     response.status_code = status.HTTP_302_FOUND
     app.next_patient_id += 1
 
 @app.get("/patient")
-def get_all_patients(response: Response, session_token: str = Cookie(None)):
-    if session_token not in app.sessions:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Unauthorised"
-        )
+def get_all_patients(response: Response, session_token: str = Depends(check_login)):
     return app.patient_dict
 
-@app.get("/patient/{pk}", response_model=PatientJSON)
-def get_patient(response: Response, pk: int, session_token: str = Cookie(None)):
-    if session_token not in app.sessions:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Unauthorised"
-        )
+@app.get("/patient/{pk}", response_model=Patient)
+def get_patient(response: Response, pk: int, session_token: str = Depends(check_login)):
     if pk not in app.patient_dict:
         raise HTTPException(status_code=204, detail="Item not found")
-    return PatientJSON(name=app.patient_dict[pk]["name"], surname=app.patient_dict[pk]["surname"])
+    return Patient(name=app.patient_dict[pk]["name"], surname=app.patient_dict[pk]["surname"])
 
 @app.delete("/patient/{pk}")
-def delete_patient(response: Response, pk: int, session_token: str = Cookie(None)):
-    if session_token not in app.sessions:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Unauthorised"
-        )
-
+def delete_patient(response: Response, pk: int, session_token: str = Depends(check_login)):
     if pk not in app.patient_dict:
         raise HTTPException(status_code=404, detail="Item not found")
     app.patient_dict.pop(pk)
@@ -126,3 +104,10 @@ def delete_patient(response: Response, pk: int, session_token: str = Cookie(None
 @app.put("/method")
 def get_method(request: Request):
     return {"method":str(request.method)}
+
+@app.get("/tracks")
+async def get_tracks(response: Response, page: int = 0, per_page: int = 10):
+    tracks = app.db_connection.execute("SELECT * FROM tracks ORDER BY TrackId "
+                                       "LIMIT ? OFFSET ?", (per_page, page*per_page, )).fetchall()
+    response.status_code = status.HTTP_200_OK
+    return tracks
