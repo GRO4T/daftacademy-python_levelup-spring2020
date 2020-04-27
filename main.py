@@ -107,6 +107,7 @@ def get_method(request: Request):
 
 @app.get("/tracks")
 async def get_tracks(response: Response, page: int = 0, per_page: int = 10):
+    app.db_connection.row_factory = sqlite3.Row
     tracks = app.db_connection.execute("SELECT * FROM tracks ORDER BY TrackId "
                                        "LIMIT ? OFFSET ?", (per_page, page*per_page, )).fetchall()
     response.status_code = status.HTTP_200_OK
