@@ -141,7 +141,6 @@ async def add_album(response: Response, album: Album):
     new_album_id = cursor.lastrowid
     app.db_connection.row_factory = sqlite3.Row
     album = app.db_connection.execute("SELECT * FROM albums WHERE AlbumId=?", (new_album_id, )).fetchone()
-    print(f"{album=}")
     response.status_code = status.HTTP_201_CREATED
     return album
 
