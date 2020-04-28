@@ -112,3 +112,15 @@ async def get_tracks(response: Response, page: int = 0, per_page: int = 10):
                                        "LIMIT ? OFFSET ?", (per_page, page*per_page, )).fetchall()
     response.status_code = status.HTTP_200_OK
     return tracks
+
+@app.get("/tracks/composers")
+async def get_composer_tracks(response: Response, composer_name: str):
+    app.db_connection.row_factory = sqlite3.Row
+    tracknames = app.db_connection.execute("SELECT Name FROM tracks WHERE Composer=? ORDER BY Name", (composer_name, )).fetchall()
+    if (len(tracknames) == 0):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No composer with this name"
+        )
+    response.status_code = status.HTTP_200_OK
+    return tracknames
