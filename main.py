@@ -143,7 +143,7 @@ async def add_album(response: Response, album: Album):
     album = app.db_connection.execute("SELECT * FROM albums WHERE AlbumId=?", (new_album_id, )).fetchone()
     response.status_code = status.HTTP_201_CREATED
     return album
-
+"""
 @app.get("/albums/{album_id}")
 async def get_album(response: Response, album_id: int):
     app.db_connection.row_factory = sqlite3.Row
@@ -155,3 +155,5 @@ async def get_album(response: Response, album_id: int):
         )
     response.status_code = status.HTTP_200_OK
     return album
+
+    """
