@@ -7,6 +7,7 @@ from hashlib import sha256
 from fastapi import FastAPI, HTTPException, Depends, Cookie, status, Request, Response
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.templating import Jinja2Templates
+from fastapi.encoders import jsonable_encoder
 
 from typing import Dict
 from pydantic import BaseModel
@@ -116,7 +117,7 @@ async def get_tracks(response: Response, page: int = 0, per_page: int = 10):
 @app.get("/tracks/composers")
 async def get_composer_tracks(response: Response, composer_name: str):
     tracknames = app.db_connection.execute("SELECT Name FROM tracks WHERE Composer=? ORDER BY Name", (composer_name, )).fetchall()
-    if (len(tracknames) == 0):
+    if (tracknames == []):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"error": "No such composer"}
@@ -130,8 +131,8 @@ class Album(BaseModel):
 
 @app.post("/albums")
 async def add_album(response: Response, album: Album):
-    artistWithGivenId = app.db_connection.execute("SELECT Name FROM artists WHERE ArtistId=?", (album.artist_id, )).fetchall()
-    if (artistWithGivenId == []):
+    artistWithId = app.db_connection.execute("SELECT Name FROM artists WHERE ArtistId=?", (album.artist_id, )).fetchone()
+    if (artistWithId == None):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail={"error": "No artist with given id"}
@@ -155,3 +156,48 @@ async def get_album(response: Response, album_id: int):
         )
     response.status_code = status.HTTP_200_OK
     return album
+
+class Customer(BaseModel):
+    company: str = None
+    address: str = None
+    city: str = None
+    state: str = None
+    country: str = None
+    postalcode: str = None
+    fax: str = None
+"""
+def createCustomerUpdateString(stored_customer: sqlite3.Row, fields_to_update: Customer):
+    stored_customer = {k.lower(): v for k, v in dict(stored_customer).items()}
+    stored_customer_model = Customer(**stored_customer)
+    update_data = fields_to_update.dict(exclude_unset=True)
+    updated_customer = stored_customer_model.copy(update=update_data)
+    return str(updated_customer).replace(" ", ", ")
+"""
+@app.put("/customers/{customer_id}")
+async def update_customer(response: Response, customer_id: int, fields_to_update: Customer):
+    app.db_connection.row_factory = sqlite3.Row
+    stored_customer = app.db_connection.execute("SELECT * FROM customers WHERE CustomerId=?", (customer_id, )).fetchone()
+    if (stored_customer == None):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"error": "No customer with given id"}
+        )
+    stored_customer = {k.lower(): v for k, v in dict(stored_customer).items()}
+    stored_customer_model = Customer(**stored_customer)
+    update_data = fields_to_update.dict(exclude_unset=True)
+    updated_customer = stored_customer_model.copy(update=update_data)
+
+    cursor = app.db_connection.execute(
+        "UPDATE customers SET Company=?, Address=?, City=?, "
+        "State=?, Country=?, PostalCode=?, Fax=? WHERE CustomerId=?", (updated_customer.company,
+                                                                     updated_customer.address,
+                                                                     updated_customer.city,
+                                                                     updated_customer.state,
+                                                                     updated_customer.country,
+                                                                     updated_customer.postalcode,
+                                                                     updated_customer.fax,
+                                                                     customer_id, ))
+    app.db_connection.commit()
+    customer = app.db_connection.execute("SELECT * FROM customers WHERE CustomerId=?", (customer_id, )).fetchone()
+    response.status_code = status.HTTP_200_OK
+    return customer
