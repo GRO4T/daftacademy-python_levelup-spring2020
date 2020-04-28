@@ -123,3 +123,36 @@ async def get_composer_tracks(response: Response, composer_name: str):
         )
     response.status_code = status.HTTP_200_OK
     return [x[0] for x in tracknames]
+
+class Album(BaseModel):
+    title: str
+    artist_id: int
+
+@app.post("/albums")
+async def add_album(response: Response, album: Album):
+    artistWithGivenId = app.db_connection.execute("SELECT Name FROM artists WHERE ArtistId=?", (album.artist_id, )).fetchall()
+    if (artistWithGivenId == []):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"error": "No artist with given id"}
+        )
+    cursor = app.db_connection.execute("INSERT INTO albums (Title, ArtistId) VALUES (?,?)", (album.title, album.artist_id, ))
+    app.db_connection.commit()
+    new_album_id = cursor.lastrowid
+    app.db_connection.row_factory = sqlite3.Row
+    album = app.db_connection.execute("SELECT * FROM albums WHERE AlbumId=?", (new_album_id, )).fetchone()
+    print(f"{album=}")
+    response.status_code = status.HTTP_201_CREATED
+    return album
+
+@app.get("/albums/{album_id}")
+async def get_album(response: Response, album_id: int):
+    app.db_connection.row_factory = sqlite3.Row
+    album = app.db_connection.execute("SELECT * FROM albums WHERE AlbumId=?", (album_id, )).fetchone()
+    if (album == None):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"error": "No album with given id"}
+        )
+    response.status_code = status.HTTP_200_OK
+    return album
