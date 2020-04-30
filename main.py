@@ -201,3 +201,21 @@ async def update_customer(response: Response, customer_id: int, fields_to_update
     customer = app.db_connection.execute("SELECT * FROM customers WHERE CustomerId=?", (customer_id, )).fetchone()
     response.status_code = status.HTTP_200_OK
     return customer
+
+@app.get("/sales")
+async def get_sales(response: Response, category: str):
+    if (category == "customers"):
+        app.db_connection.row_factory = sqlite3.Row
+        customer_expenses = app.db_connection.execute("SELECT c.CustomerId, c.Email, c.Phone, cs.Sum "
+                                                    "FROM customers c JOIN "
+                                                    "(SELECT CustomerId, Round(Sum(Total), 2) Sum FROM invoices "
+                                                    "GROUP BY CustomerId) cs "
+                                                    "ON c.CustomerId = cs.CustomerId "
+                                                    "ORDER BY cs.Sum DESC, c.CustomerId").fetchall()
+        return customer_expenses
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"error": "No category of stats with given name"}
+        )
+
