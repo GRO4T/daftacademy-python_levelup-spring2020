@@ -16,6 +16,13 @@ import database as db
 from typing import Dict
 from pydantic import BaseModel
 
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+from schemas import Artist
+from models import OrmArtist
+from database import SessionLocal
+
 app = FastAPI()
 app.next_patient_id = 0
 app.patient_dict = {}
@@ -34,10 +41,12 @@ app.include_router(tracks.router)
 @app.on_event("startup")
 async def startup():
     db.connection = sqlite3.connect("chinook.db")
+    app.db = SessionLocal()
 
 @app.on_event("shutdown")
 async def shutdown():
     db.connection.close()
+    app.db.close()
 
 def check_login(session_token: str = Cookie(None)):
     if session_token not in app.sessions:
@@ -113,3 +122,10 @@ def delete_patient(response: Response, pk: int, session_token: str = Depends(che
 @app.put("/method")
 def get_method(request: Request):
     return {"method":str(request.method)}
+
+@app.get("/artists/{artist_id}", response_model=Artist)
+async def get_artist(artist_id: int):
+    db_artist = app.db.query(OrmArtist).filter(OrmArtist.artist_id == artist_id).first()
+    if db_artist is None:
+        raise HTTPException(status_code=404, detail="Artist not found")
+    return db_artist
