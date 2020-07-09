@@ -36,6 +36,12 @@ SELECT schemaname,SUM(n_live_tup)
   GROUP BY schemaname;
 ```
 
+## Git hacks and tricks
+##### How to remove files from remote repo according to .gitignore
+```bash
+git rm --cached `git ls-files -i -X .gitignore`
+```
+
 ### May be important
 12  main    5432 down   postgres /var/lib/postgresql/12/main /var/log/postgresql
 /postgresql-12-main.log

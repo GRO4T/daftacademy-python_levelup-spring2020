@@ -17,7 +17,7 @@ from pydantic import BaseModel
 
 
 from app.schemas import Artist
-from app.database import SessionLocal
+from app.database.database import SessionLocal
 
 from app.views import router as chinook_api_router
 
