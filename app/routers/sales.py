@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Response, HTTPException, status
-import database as db
+from app import database as db
 import sqlite3
 
 router = APIRouter()

@@ -1,4 +1,4 @@
-import database as db
+from app import database as db
 from fastapi import Response, HTTPException, status, APIRouter
 import sqlite3
 
