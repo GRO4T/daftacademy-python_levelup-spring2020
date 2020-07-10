@@ -1,2 +1,3 @@
 postgres:
-  url: 'postgres://ofmufbzehaebmq:191ea1ad99a9bea6c8f613fab4f8256a0a2862a5d23a655237d139ff8f2488d0@ec2-54-247-89-181.eu-west-1.compute.amazonaws.com:5432/d2ghcjfpcq2p7u'
+  url: ${{ secrets.DATABASE_URL }}
+

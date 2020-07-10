@@ -1,2 +1,3 @@
 __pycache__
 postgres/chinook_pg.sql
+app/database/postgres_url_local.yml
