@@ -7,19 +7,16 @@ from hashlib import sha256
 from fastapi import FastAPI, HTTPException, Depends, Cookie, status, Request, Response
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 
-from app.routers import customers
-from app.routers import tracks, sales, albums
+from app.routers import tracks, sales, albums, customers, artists, item
 
 from app import database as db
 
 from pydantic import BaseModel
 
-
 from app.schemas import Artist
 from app.database.database import SessionLocal
-
-from app.views import router as chinook_api_router
 
 app = FastAPI()
 app.next_patient_id = 0
@@ -28,6 +25,7 @@ app.sessions = {}
 app.secret_key = "very constatn and random secret, best 64 characters"
 
 templates = Jinja2Templates(directory="templates")
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 security = HTTPBasic()
 
@@ -35,7 +33,8 @@ app.include_router(sales.router)
 app.include_router(customers.router)
 app.include_router(albums.router)
 app.include_router(tracks.router)
-app.include_router(chinook_api_router, tags=["chinook"])
+app.include_router(artists.router, tags=["chinook"])
+app.include_router(item.router, prefix="/item")
 
 
 @app.on_event("startup")

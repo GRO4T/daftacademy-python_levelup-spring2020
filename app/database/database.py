@@ -1,13 +1,9 @@
 # app/database/database.py
 
-import sqlite3
-
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 import os
-
-connection: sqlite3.Connection
 
 SQLALCHEMY_DATABASE_URL = os.environ['DATABASE_URL']
 

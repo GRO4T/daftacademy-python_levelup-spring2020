@@ -2,8 +2,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from . import schemas
-from app import crud
+from app import schemas, crud
 from app.database.database import get_db
 
 

@@ -1,0 +1,18 @@
+<html>
+<head>
+    <title>Item Details</title>
+    <script src="https://unpkg.com/vue/dist/vue.js"></script>
+    <link href="{{ url_for('static', path='/styles.css') }}" rel="stylesheet">
+</head>
+<body>
+    <div id="vue">
+        <h1>[[text]]</h1>
+        <div v-html="html"></div>
+        <div v-html="html1"></div>
+        <bar></bar>
+        <hello></hello>
+        <button v-on:click="sayHi">ClickMe</button>
+    </div>
+    <script src="{{ url_for('static', path='/vue.js') }}"></script>
+</body>
+</html>
